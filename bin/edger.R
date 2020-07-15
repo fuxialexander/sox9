@@ -1,8 +1,11 @@
 #!/usr/bin/env Rscript
 args <- commandArgs(trailingOnly = TRUE)
 x <- read.delim(args[1], row.names = "Geneid")
+# x <- read.delim("nf_output/featureCounts/merged_gene_counts.txt", row.names="Geneid")
 x[, 1] <- NULL
-x <- x[, c(8, 1, 3, 4)]
+a <- x
+
+x <- x[, c(1,4,5,3)]
 library(edgeR)
 y <- DGEList(counts = x, group = c(1, 1, 2, 2))
 
@@ -51,7 +54,14 @@ universe <- mapIds(org.Mm.eg.db, rownames(lrt$table), "ENTREZID", "SYMBOL")
 
 go <- goana(eid, universe = universe, species = "Mm")
 
-write.csv(x, "all_read_counts.csv", quote=FALSE)
+all_gene = merge(lrt$table, a, by="row.names",all.x=TRUE)
+colnames(all_gene)[1]="gene"
+
+write.csv(all_gene, "all_genes.csv", quote=FALSE, row.names=FALSE)
+
+deg = merge(topTags(lrt, n = 100), a, by="row.names",all.x=TRUE)
+colnames(deg)[1]="gene"
+write.csv(deg, "top100_deg.csv", quote = FALSE, row.names=FALSE)
+
 write.csv(go, "go.csv", quote = FALSE)
 write.csv(go[go$N < 200 & go$P.DE < (0.05 / nrow(go)), ], "go_N200_Bonferroni_sig.csv", quote = FALSE)
-write.csv(topTags(lrt, n = 100), "top100_deg.csv", quote = FALSE)

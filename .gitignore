@@ -1,8 +1,9 @@
 raw/
 work/
-results/
+results*/
 .vscode/
 .nextflow/
 .nextflow.log
 .nextflow.log.*
 nf_output/
+results*.tar.gz

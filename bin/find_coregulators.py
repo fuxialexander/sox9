@@ -4,9 +4,8 @@ import argparse
 import pandas as pd
 
 
-def get_neighbor(fimo, seq, start, stop, inner, outer):
-    fimo[fimo.sequence_name == seq]
-    fimo_neighbor = fimo[fimo.sequence_name == seq].query('start > ' +
+def get_neighbor(fimo, loc, start, stop, inner, outer):
+    fimo_neighbor = fimo[fimo.location == loc].query('start > ' +
                                                           str(stop - outer) +
                                                           ' & start <= ' +
                                                           str(stop + outer) +
@@ -26,25 +25,13 @@ def main(arg):
     ).reset_index().set_index('Transcription factor').to_dict(
         orient='dict')['Model']
 
-    fimo = pd.read_csv(arg.fimo, sep='\t', header=0, comment='#')
-    fimo_target = fimo[fimo.motif_id.str.startswith(get_annot[arg.target])]
+    fimo = pd.read_csv(arg.fimo, sep=',', header=0, comment='#')
+    fimo_target = fimo[fimo.tf==arg.target]
     fimo_neighbors = pd.concat([
-        get_neighbor(fimo, row.sequence_name, row.start, row.stop, arg.inner,
+        get_neighbor(fimo, row.location, row.start, row.stop, arg.inner,
                      arg.outer) for i, row in fimo_target.iterrows()
-    ],
-                               axis=0)
-    # fimo_neighbors = fimo_neighbors.iloc[:, ]
-    fimo_neighbors = fimo_neighbors.join(
-        fimo_neighbors['sequence_name'].str.split(
-            '::', 1, expand=True).rename(columns={
-                0: 'target_gene',
-                1: 'location'
-            }))
-    fimo_neighbors.drop(['sequence_name', 'motif_alt_id'], axis=1, inplace=True)
-    fimo_neighbors['tf'] = [
-        get_tf[f] for f in fimo_neighbors['motif_id'].values
-    ]
-    fimo_neighbors.reset_index(drop=True).to_csv(arg.output)
+    ], axis=0)
+    fimo_neighbors.reset_index(drop=True).to_csv(arg.output, index=False)
     return
 
 

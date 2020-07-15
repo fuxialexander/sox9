@@ -10,7 +10,6 @@ params.size = params.genome ? params.genomes[ params.genome ].size ?: false : fa
 params.fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : false
 
 process deg {
-    conda '/home/xfu/miniconda3/envs/edger'
     publishDir "$params.outdir/edger", saveAs: { 
         filename -> filename.endsWith(".pdf") 
         ? "plots/$filename" 
@@ -39,7 +38,7 @@ process get_deg_promoter {
         | awk -F, '{print \$1"\t"\$1"_1"}'  \
         | sort -k2,2 \
         | join -1 2 -2 4 - <(sort -k4,4 $params.tss) -t\$'\t' \
-        | awk '{OFS="\t";print \$3,\$4-500,\$5+500,\$2,\$6,\$7}' \
+        | awk '{OFS="\t";print \$3,\$4-$params.tss_len,\$5+$params.tss_len,\$2,\$6,\$7}' \
         > ${deg.baseName}.bed
     """
 }
@@ -50,19 +49,22 @@ process get_all_promoter {
     script:
     """
     cat $params.tss \
-        | awk -F"[\t_]" '{OFS="\t";print \$1,\$2-500,\$3+500,\$4,\$6,\$7}' \
+        | awk -F"[\t_]" '{OFS="\t";print \$1,\$2-$params.tss_len,\$3+$params.tss_len,\$4,\$6,\$7}' \
+        | shuf -n 2000 \
         > ${params.genome}.promoter.bed
     """
 }
 
 include fimo from './nf_modules/meme/fimo.nf' params (
-    conda: '/home/xfu/miniconda3/envs/meme',
-    motif: "$params.motif"
+    motif: "$params.motif",
+    motif_annot: "$params.motif_annot",
+    outdir: "$params.outdir"
 )
 
 include ame from './nf_modules/meme/ame.nf' params (
-    conda: '/home/xfu/miniconda3/envs/meme',
-    motif: "$params.motif"
+    motif: "$params.motif",
+    motif_annot: "$params.motif_annot",
+    outdir: "$params.outdir"
 )
 
 process find_coregulators {
